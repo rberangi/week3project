@@ -19,7 +19,8 @@ require("data.table")
 require("reshape") ##  needs for melt and cast functions
 
 features <- read.table("D:/data/week3/UCI_HAR_Dataset/features.txt")[,2]
-selection_index  <- grepl("mean|std", features)
+# index to select mean or standard deviation index
+selection_index  <- grepl("mean|std", features)  
 activity_labels <- read.table("D:/data/week3/UCI_HAR_Dataset/activity_labels.txt")[,2]
 
 ##=========  load and process train data  ============
@@ -27,6 +28,7 @@ activity_labels <- read.table("D:/data/week3/UCI_HAR_Dataset/activity_labels.txt
 train_pure_data <- read.table("D:/data/week3/UCI_HAR_Dataset/train/X_train.txt") 
 names(train_pure_data) = features
 
+# select those train data who contain mean or standard deviation
 Extracted_train_data = train_pure_data[,selection_index]
 
 train_activities <- read.table("D:/data/week3/UCI_HAR_Dataset/train/y_train.txt") 
@@ -34,7 +36,7 @@ train_activities <- read.table("D:/data/week3/UCI_HAR_Dataset/train/y_train.txt"
 train_activities[,2] = activity_labels[train_activities[,1]]
 names(train_activities) = c("Activity_ID", "Activity_Label")
 
-
+# person inentifier [1-6] table
 train_person_identifier <- read.table("D:/data/week3/UCI_HAR_Dataset/train/subject_train.txt")
 names(train_person_identifier) = "person_identifier"
 
@@ -59,3 +61,25 @@ names(test_activities) = c("Activity_ID", "Activity_Label")
 test_person_identifier <- read.table("D:/data/week3/UCI_HAR_Dataset/test/subject_test.txt")
 names(test_person_identifier) = "person_identifier"
 
+# Bind test data
+test_data <- cbind(as.data.table(test_person_identifier), test_activities, Extracted_test_data)
+
+## ======================   Merge test and train data  ===================
+data = rbind(test_data, train_data)
+
+## ========= data averaging using melt and cast funcions 
+
+id_labels   = c("person_identifier", "Activity_ID", "Activity_Label")
+
+# apply melt function to make long table for averaging 
+
+melt_data      = melt(data, id = id_labels)
+
+
+# Apply mean function through cast function and rebuilt wide data table
+
+tidy_data   = cast(melt_data, person_identifier + Activity_Label ~ variable, mean)
+
+# save data
+
+write.table(tidy_data, file = "D:/data/week3/tidy_data.txt", row.name=FALSE)
